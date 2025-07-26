@@ -9,7 +9,13 @@ const sessions = new Map(); // connectionId → { web, app }
 wss.on("connection", (ws, req) => {
   const location = url.parse(req.url, true);
   const path = location.pathname; // z. B. "/cid-abc123"
-  const connectionId = path.replace("/", "");
+  const connectionId = path.replace("/", "").trim();
+
+  if (!connectionId) {
+    console.warn("⚠️ Verbindung ohne gültige connectionId → schließen");
+    ws.close();
+    return;
+  }
 
   console.log("Neue Verbindung:", connectionId);
 
@@ -28,15 +34,17 @@ wss.on("connection", (ws, req) => {
     role = "app";
     session.app = ws;
   } else {
-    console.log("Session bereits voll, Verbindung abgelehnt.");
+    console.log("❌ Session bereits voll:", connectionId);
     ws.close();
     return;
   }
 
-  console.log(`Client registriert: role=${role}, connectionId=${connectionId}`);
+  console.log(
+    `✅ Client registriert: role=${role}, connectionId=${connectionId}`
+  );
 
   if (session.web && session.app) {
-    console.log(`Session aktiv: ${connectionId}`);
+    console.log(`🎉 Session vollständig verbunden: ${connectionId}`);
   }
 
   ws.on("message", (msg) => {
@@ -47,16 +55,14 @@ wss.on("connection", (ws, req) => {
   });
 
   ws.on("close", () => {
-    console.log(`Verbindung geschlossen: ${role} → ${connectionId}`);
+    console.log(`🔌 Verbindung geschlossen: ${role} → ${connectionId}`);
     session[role] = null;
 
     if (!session.web && !session.app) {
       sessions.delete(connectionId);
-      console.log(`Session gelöscht: ${connectionId}`);
+      console.log(`🗑️ Session gelöscht: ${connectionId}`);
     }
   });
 });
 
-console.log(
-  `DG-LAB-kompatibler WebSocket-Server (Pfad-basiert) läuft auf Port ${PORT}`
-);
+console.log(`🚀 DG-LAB-kompatibler WebSocket-Server läuft auf Port ${PORT}`);
