@@ -1,7 +1,14 @@
+// Deine WebSocket-Server-URL
 const wsServerUrl = "wss://coyote-ws-server.onrender.com";
-let connectionId = "";
 
-// QR-Code erzeugen im <div id="qrcode">
+// Zufällige Verbindung-ID erzeugen (z. B. UUID)
+function generateConnectionId() {
+  return "cid-" + Math.random().toString(36).substring(2, 12);
+}
+
+const connectionId = generateConnectionId();
+
+// QR-Code Objekt initialisieren
 const qrcodeImg = new QRCode(document.getElementById("qrcode"), {
   width: 128,
   height: 128,
@@ -12,20 +19,21 @@ const ws = new WebSocket(wsServerUrl);
 
 ws.onopen = () => {
   console.log("WebSocket-Verbindung erfolgreich");
+
+  // Rolle und Connection-ID an den Server melden
+  ws.send(
+    JSON.stringify({
+      role: "web",
+      connectionId: connectionId,
+    })
+  );
+
+  // Jetzt QR-Code generieren
+  updateQRCode();
 };
 
 ws.onmessage = (event) => {
   console.log("Nachricht vom Server:", event.data);
-
-  try {
-    const data = JSON.parse(event.data);
-    if (data.connectionId) {
-      connectionId = data.connectionId;
-      updateQRCode();
-    }
-  } catch (e) {
-    console.warn("Keine gültige JSON-Antwort erhalten.");
-  }
 };
 
 ws.onerror = (err) => {
