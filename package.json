@@ -1,7 +1,9 @@
 {
-  "name": "coyote-demo",
+  "name": "coyote-ws-server",
   "version": "1.0.0",
+  "main": "server.js",
   "dependencies": {
+    "uuid": "^9.0.0",
     "ws": "^8.0.0"
   }
 }
