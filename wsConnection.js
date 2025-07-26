@@ -1,20 +1,17 @@
-// WebSocket-Adresse deines Servers auf render.com
 const wsServerUrl = "wss://coyote-ws-server.onrender.com";
-
-// Verbindung-ID (kommt vom Server)
 let connectionId = "";
 
-// QR-Code-Generator initialisieren
+// QR-Code erzeugen im <div id="qrcode">
 const qrcodeImg = new QRCode(document.getElementById("qrcode"), {
   width: 128,
   height: 128,
 });
 
-// WebSocket starten
+// WebSocket-Verbindung aufbauen
 const ws = new WebSocket(wsServerUrl);
 
 ws.onopen = () => {
-  console.log("WebSocket-Verbindung hergestellt.");
+  console.log("WebSocket-Verbindung erfolgreich");
 };
 
 ws.onmessage = (event) => {
@@ -27,19 +24,19 @@ ws.onmessage = (event) => {
       updateQRCode();
     }
   } catch (e) {
-    console.log("Nicht-JSON Nachricht erhalten. Ignoriere.");
+    console.warn("Keine gültige JSON-Antwort erhalten.");
   }
-};
-
-ws.onclose = () => {
-  console.log("WebSocket-Verbindung geschlossen.");
 };
 
 ws.onerror = (err) => {
   console.error("WebSocket-Fehler:", err);
 };
 
-// QR-Code anzeigen mit DG-LAB-Link
+ws.onclose = () => {
+  console.log("WebSocket getrennt");
+};
+
+// DG-LAB-konforme QR-Adresse generieren
 function updateQRCode() {
   const qrData =
     "https://www.dungeon-lab.com/app-download.php#DGLAB-SOCKET#" +
@@ -47,5 +44,6 @@ function updateQRCode() {
     "/" +
     connectionId;
 
+  console.log("QR-Daten:", qrData);
   qrcodeImg.makeCode(qrData);
 }
