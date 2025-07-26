@@ -4,7 +4,7 @@ const http = require("http");
 
 const PORT = process.env.PORT || 10000;
 
-// HTTP-Server für Render (wichtig für Port-Scan)
+// HTTP-Server für Render.com (damit Port-Scan klappt)
 const server = http.createServer((req, res) => {
   res.writeHead(200);
   res.end("🧩 WebSocket-Server läuft.");
@@ -21,7 +21,7 @@ wss.on("connection", (ws, req) => {
   let role = null;
   let connectionId = null;
 
-  // Generiere UUID für Web-Client (zurück an Client senden)
+  // UUID generieren und direkt an Webclient senden
   const tempId = uuidv4();
   ws.send(JSON.stringify({ connectionId: tempId }));
 
@@ -29,9 +29,11 @@ wss.on("connection", (ws, req) => {
     console.log("📩 Rohdaten empfangen:", msg);
 
     try {
-      const data = JSON.parse(msg);
+      const jsonStr = msg.toString();
+      console.log("📩 Nachricht als String:", jsonStr);
 
-      // Erstkontakt: Rolle + ID setzen
+      const data = JSON.parse(jsonStr);
+
       if (data.connectionId && data.role) {
         role = data.role.trim();
         connectionId = data.connectionId.trim();
@@ -45,7 +47,6 @@ wss.on("connection", (ws, req) => {
         const session = sessions.get(connectionId);
         session[role] = ws;
 
-        // Wenn App verbunden: Handshake senden
         if (role === "app") {
           const handshake = {
             type: "bind",
@@ -57,7 +58,6 @@ wss.on("connection", (ws, req) => {
           console.log("🤝 Handshake an App gesendet:", handshake);
         }
 
-        // Wenn beide Seiten da → Session OK
         if (session.web && session.app) {
           console.log(`🎉 Session vollständig: ${connectionId}`);
         }
@@ -65,17 +65,18 @@ wss.on("connection", (ws, req) => {
         return;
       }
 
-      // Weiterleitung: Nachricht an Gegenstelle schicken
-      if (role && connectionId) {
+      // Nachricht weiterleiten
+      if (connectionId && role) {
         const session = sessions.get(connectionId);
         const target = role === "web" ? session.app : session.web;
 
         if (target && target.readyState === WebSocket.OPEN) {
-          target.send(msg);
+          target.send(jsonStr);
         }
       }
     } catch (e) {
-      console.warn("❌ Fehler beim Parsen:", e);
+      console.error("❌ Fehler beim Parsen der Nachricht:", e.message);
+      console.error("🧾 Ursprüngliche Nachricht:", msg.toString());
     }
   });
 
