@@ -10,14 +10,17 @@ wss.on("connection", (ws) => {
   let role = null;
   let connectionId = null;
 
-  // Generiere UUID und sende sie an die Webseite
+  // Generiere UUID und sende sie an den Client (z. B. Webseite)
   const id = uuidv4();
   ws.send(JSON.stringify({ connectionId: id }));
 
   ws.on("message", (msg) => {
+    console.log(`📩 Nachricht empfangen: ${msg}`);
+
     try {
       const data = JSON.parse(msg);
 
+      // Erste Initialisierung: Rolle & Verbindung zuweisen
       if (data.connectionId && data.role) {
         connectionId = data.connectionId.trim();
         role = data.role;
@@ -31,6 +34,17 @@ wss.on("connection", (ws) => {
         const session = sessions.get(connectionId);
         session[role] = ws;
 
+        // Test: Wenn App verbunden, sende ACK (hilft Debug)
+        if (role === "app") {
+          ws.send(
+            JSON.stringify({
+              type: "bind_ack",
+              status: "ok",
+              connectionId,
+            })
+          );
+        }
+
         if (session.web && session.app) {
           console.log(`🎉 Session vollständig: ${connectionId}`);
         }
@@ -38,13 +52,18 @@ wss.on("connection", (ws) => {
         return;
       }
 
-      // Nachricht durchleiten
+      // Spätere Nachrichten: an die Gegenseite weiterleiten
       if (connectionId && role) {
         const session = sessions.get(connectionId);
         const target = role === "web" ? session.app : session.web;
 
         if (target && target.readyState === WebSocket.OPEN) {
           target.send(msg);
+          console.log(
+            `📤 Weitergeleitet an ${role === "web" ? "app" : "web"}: ${msg}`
+          );
+        } else {
+          console.log("⚠️ Ziel nicht erreichbar");
         }
       }
     } catch (e) {
@@ -54,17 +73,18 @@ wss.on("connection", (ws) => {
 
   ws.on("close", () => {
     if (!connectionId || !role) return;
+
     const session = sessions.get(connectionId);
-    if (!session) return;
+    if (session) {
+      session[role] = null;
+      console.log(`🔌 Verbindung getrennt: ${role} (${connectionId})`);
 
-    session[role] = null;
-    console.log(`🔌 Verbindung getrennt: ${role} (${connectionId})`);
-
-    if (!session.web && !session.app) {
-      sessions.delete(connectionId);
-      console.log(`🗑️ Session gelöscht: ${connectionId}`);
+      if (!session.web && !session.app) {
+        sessions.delete(connectionId);
+        console.log(`🗑️ Session gelöscht: ${connectionId}`);
+      }
     }
   });
 });
 
-console.log(`🚀 DG-LAB-kompatibler Server läuft auf Port ${PORT}`);
+console.log(`🚀 DG-LAB-kompatibler WebSocket-Server läuft auf Port ${PORT}`);
