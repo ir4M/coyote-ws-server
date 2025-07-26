@@ -1,58 +1,80 @@
 const WebSocket = require("ws");
-const { v4: uuidv4 } = require("uuid");
 
 const PORT = process.env.PORT || 10000;
 const wss = new WebSocket.Server({ port: PORT });
 
-// Jede Verbindung erhält eine eigene UUID
-const clients = new Map(); // id => ws
-const pairings = new Map(); // id => partnerId
+const sessions = new Map(); // connectionId → { web, app }
 
 wss.on("connection", (ws) => {
-  const id = uuidv4();
-  clients.set(id, ws);
+  let role = null;
+  let connectionId = null;
 
-  console.log("Client verbunden:", id);
-
-  // UUID an den Client senden
-  ws.send(JSON.stringify({ connectionId: id }));
-
-  // Versuche zu koppeln (wenn zwei Clients da sind)
-  tryPairClients();
+  console.log("Neue Verbindung eingegangen");
 
   ws.on("message", (msg) => {
-    console.log(`Nachricht von ${id}: ${msg}`);
+    try {
+      const data = JSON.parse(msg);
 
-    const partnerId = pairings.get(id);
-    const partnerSocket = clients.get(partnerId);
+      if (data.connectionId && data.role) {
+        // Verbindung initialisieren
+        connectionId = data.connectionId;
+        role = data.role;
 
-    if (partnerSocket && partnerSocket.readyState === WebSocket.OPEN) {
-      partnerSocket.send(msg); // Weiterleiten an Partner
-    } else {
-      console.log("Kein Partner verfügbar oder geschlossen.");
+        if (!sessions.has(connectionId)) {
+          sessions.set(connectionId, {});
+        }
+
+        const session = sessions.get(connectionId);
+        session[role] = ws;
+
+        console.log(
+          `Client registriert: role=${role}, connectionId=${connectionId}`
+        );
+
+        // Wenn beide Rollen vorhanden sind → weiterleiten aktivieren
+        if (session.web && session.app) {
+          console.log(`Session aktiv: ${connectionId}`);
+        }
+
+        return;
+      }
+
+      // Normale Nachricht → weiterleiten, falls Session aktiv
+      if (!connectionId || !role) {
+        console.warn("Nachricht ohne gültige Session erhalten");
+        return;
+      }
+
+      const session = sessions.get(connectionId);
+      if (!session || !session.web || !session.app) {
+        console.warn("Session unvollständig");
+        return;
+      }
+
+      const target = role === "web" ? session.app : session.web;
+      if (target.readyState === WebSocket.OPEN) {
+        target.send(msg);
+      }
+    } catch (e) {
+      console.error("Fehler beim Verarbeiten der Nachricht:", e);
     }
   });
 
   ws.on("close", () => {
-    console.log("Verbindung geschlossen:", id);
-    clients.delete(id);
+    if (!connectionId || !role) return;
 
-    const partnerId = pairings.get(id);
-    pairings.delete(id);
-    if (partnerId) pairings.delete(partnerId);
+    const session = sessions.get(connectionId);
+    if (session) {
+      session[role] = null;
+      console.log(`Verbindung getrennt: ${role} → ${connectionId}`);
+
+      // Wenn beide Seiten getrennt → Session löschen
+      if (!session.web && !session.app) {
+        sessions.delete(connectionId);
+        console.log(`Session gelöscht: ${connectionId}`);
+      }
+    }
   });
 });
 
-function tryPairClients() {
-  const ids = Array.from(clients.keys());
-  if (ids.length < 2) return;
-
-  // Wenn zwei Clients vorhanden sind, verbinde sie miteinander
-  const [id1, id2] = ids.slice(-2); // letzte zwei
-  pairings.set(id1, id2);
-  pairings.set(id2, id1);
-
-  console.log(`Clients gekoppelt: ${id1} <--> ${id2}`);
-}
-
-console.log(`WebSocket-Server läuft auf Port ${PORT}`);
+console.log(`DG-LAB-kompatibler WebSocket-Server läuft auf Port ${PORT}`);
