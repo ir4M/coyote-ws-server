@@ -4,27 +4,34 @@ const http = require("http");
 
 const PORT = process.env.PORT || 10000;
 
-// HTTP-Server für WSS bei Render
-const server = http.createServer();
+// HTTP-Server für Render (wichtig für Port-Scan)
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("🧩 WebSocket-Server läuft.");
+});
+
 const wss = new WebSocket.Server({ server });
 
 const sessions = new Map(); // connectionId → { web, app }
 
 wss.on("connection", (ws, req) => {
+  console.log("🌐 Neue Verbindung hergestellt");
+  console.log("📡 IP:", req.socket.remoteAddress);
+
   let role = null;
   let connectionId = null;
 
-  // Wenn Web-Client: sofort ID generieren und senden
+  // Generiere UUID für Web-Client (zurück an Client senden)
   const tempId = uuidv4();
   ws.send(JSON.stringify({ connectionId: tempId }));
 
   ws.on("message", (msg) => {
-    console.log(`📩 Nachricht empfangen: ${msg}`);
+    console.log("📩 Rohdaten empfangen:", msg);
 
     try {
       const data = JSON.parse(msg);
 
-      // Erstverbindung: Rolle und ID setzen
+      // Erstkontakt: Rolle + ID setzen
       if (data.connectionId && data.role) {
         role = data.role.trim();
         connectionId = data.connectionId.trim();
@@ -38,7 +45,7 @@ wss.on("connection", (ws, req) => {
         const session = sessions.get(connectionId);
         session[role] = ws;
 
-        // Wenn App verbunden → Handshake senden
+        // Wenn App verbunden: Handshake senden
         if (role === "app") {
           const handshake = {
             type: "bind",
@@ -50,7 +57,7 @@ wss.on("connection", (ws, req) => {
           console.log("🤝 Handshake an App gesendet:", handshake);
         }
 
-        // Wenn beide Rollen verbunden → Erfolg
+        // Wenn beide Seiten da → Session OK
         if (session.web && session.app) {
           console.log(`🎉 Session vollständig: ${connectionId}`);
         }
@@ -58,7 +65,7 @@ wss.on("connection", (ws, req) => {
         return;
       }
 
-      // Nachricht durchleiten zwischen Web und App
+      // Weiterleitung: Nachricht an Gegenstelle schicken
       if (role && connectionId) {
         const session = sessions.get(connectionId);
         const target = role === "web" ? session.app : session.web;
@@ -73,6 +80,8 @@ wss.on("connection", (ws, req) => {
   });
 
   ws.on("close", () => {
+    console.log("🔌 Verbindung geschlossen (noch ohne Identifikation)");
+
     if (!connectionId || !role) return;
     const session = sessions.get(connectionId);
     if (!session) return;
