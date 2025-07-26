@@ -3,21 +3,10 @@
   <head>
     <title>QR-Code für Coyote Socket</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script defer src="wsConnection.js"></script>
   </head>
   <body>
     <h1>Socket Connect QR für Janina</h1>
-    <canvas id="qrcode"></canvas>
-    <script>
-      //   const socketURL = "ws://192.168.56.1:60536"; // gleich mehr dazu!
-      const socketURL = "wss://coyote-ws-server.onrender.com";
-      QRCode.toCanvas(
-        document.getElementById("qrcode"),
-        socketURL,
-        function (error) {
-          if (error) console.error(error);
-          console.log("QR-Code generiert");
-        }
-      );
-    </script>
+    <div id="qrcode"></div>
   </body>
 </html>
