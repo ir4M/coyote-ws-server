@@ -8,7 +8,8 @@
     <h1>Socket Connect QR</h1>
     <canvas id="qrcode"></canvas>
     <script>
-      const socketURL = "ws://192.168.56.1:60536"; // gleich mehr dazu!
+      //   const socketURL = "ws://192.168.56.1:60536"; // gleich mehr dazu!
+      const socketURL = "wss://coyote-ws-server.onrender.com";
       QRCode.toCanvas(
         document.getElementById("qrcode"),
         socketURL,
