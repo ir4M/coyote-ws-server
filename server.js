@@ -10,7 +10,7 @@ wss.on("connection", (ws) => {
   let role = null;
   let connectionId = null;
 
-  // Generiere UUID und sende sie an den Client (z. B. Webseite)
+  // UUID erzeugen und gleich an die Web-Client senden
   const id = uuidv4();
   ws.send(JSON.stringify({ connectionId: id }));
 
@@ -20,7 +20,6 @@ wss.on("connection", (ws) => {
     try {
       const data = JSON.parse(msg);
 
-      // Erste Initialisierung: Rolle & Verbindung zuweisen
       if (data.connectionId && data.role) {
         connectionId = data.connectionId.trim();
         role = data.role;
@@ -34,13 +33,14 @@ wss.on("connection", (ws) => {
         const session = sessions.get(connectionId);
         session[role] = ws;
 
-        // Test: Wenn App verbunden, sende ACK (hilft Debug)
         if (role === "app") {
+          // Sende Handshake-Antwort für die App (wichtig!)
           ws.send(
             JSON.stringify({
-              type: "bind_ack",
-              status: "ok",
-              connectionId,
+              code: 200,
+              type: "init_success",
+              connectionId: connectionId,
+              msg: "ready",
             })
           );
         }
@@ -52,7 +52,7 @@ wss.on("connection", (ws) => {
         return;
       }
 
-      // Spätere Nachrichten: an die Gegenseite weiterleiten
+      // Nachricht weiterleiten
       if (connectionId && role) {
         const session = sessions.get(connectionId);
         const target = role === "web" ? session.app : session.web;
@@ -62,8 +62,6 @@ wss.on("connection", (ws) => {
           console.log(
             `📤 Weitergeleitet an ${role === "web" ? "app" : "web"}: ${msg}`
           );
-        } else {
-          console.log("⚠️ Ziel nicht erreichbar");
         }
       }
     } catch (e) {
