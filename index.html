@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Coyote Socket Demo</title>
+  </head>
+  <body>
+    <button id="connect">Connect</button>
+    <script>
+      document.getElementById("connect").onclick = () => {
+        const ws = new WebSocket("ws://localhost:60536");
+        ws.onopen = () => alert("Verbunden mit Server!");
+        ws.onmessage = (ev) => console.log("Eingehende Nachricht:", ev.data);
+        ws.send(
+          JSON.stringify({
+            cmd: "set_pattern",
+            pattern_name: "经典",
+            intensity: 50,
+            ticks: -1,
+          })
+        );
+      };
+    </script>
+  </body>
+</html>

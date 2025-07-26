@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>QR-Code für Coyote Socket</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  </head>
+  <body>
+    <h1>Socket Connect QR</h1>
+    <canvas id="qrcode"></canvas>
+    <script>
+      const socketURL = "ws://192.168.56.1:60536"; // gleich mehr dazu!
+      QRCode.toCanvas(
+        document.getElementById("qrcode"),
+        socketURL,
+        function (error) {
+          if (error) console.error(error);
+          console.log("QR-Code generiert");
+        }
+      );
+    </script>
+  </body>
+</html>
