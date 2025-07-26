@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Fake DG-LAB App</title>
+  </head>
+  <body>
+    <h1>Testverbindung zur Session</h1>
+    <script>
+      const connectionId = prompt("Gib die connectionId ein (aus QR-Code)");
+      const ws = new WebSocket("wss://coyote-ws-server.onrender.com");
+
+      ws.onopen = () => {
+        console.log("Verbunden als App");
+        ws.send(
+          JSON.stringify({
+            role: "app",
+            connectionId: connectionId,
+          })
+        );
+      };
+
+      ws.onmessage = (event) => {
+        console.log("📩 Nachricht empfangen:", event.data);
+      };
+    </script>
+  </body>
+</html>
