@@ -14,12 +14,16 @@ ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
     console.log("📩 Nachricht vom Server:", msg);
 
-    if (msg.connectionId) {
-      connectionId = msg.connectionId;
-      console.log("🔗 connectionId erhalten:", connectionId);
+    // Reaktion auf bind-Nachricht vom Server (Handshake)
+    if (msg.type === "bind" && msg.clientId && msg.message === "targetId") {
+      connectionId = msg.clientId;
+      console.log("🔗 clientId erhalten:", connectionId);
     }
 
-    // Weitere Nachrichtenbehandlung (z. B. heartbeats) kannst du hier ergänzen
+    // Optional: weitere Nachrichtentypen behandeln
+    if (msg.type === "heartbeat") {
+      console.log("❤️ Herzschlag empfangen:", msg.message);
+    }
   } catch (e) {
     console.error("❌ Fehler beim Verarbeiten der Nachricht:", e);
   }

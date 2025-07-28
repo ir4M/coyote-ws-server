@@ -5,7 +5,7 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   </head>
   <body>
-    <h1>Ihr Paket ist da. Bitte Scannen Sie den QR Code</h1>
+    <h1>Bitte QR-Code scannen</h1>
     <canvas id="qrcode"></canvas>
 
     <script type="module">
@@ -13,19 +13,26 @@
 
       const prefix =
         "https://www.dungeon-lab.com/app-download.php#DGLAB-SOCKET#";
-      const wsURL = `wss://coyote-ws-server.onrender.com/${connectionId}`;
-      const qrData = prefix + wsURL;
 
-      console.log("QR-Daten:", qrData);
+      // Warte auf gültige connectionId
+      const interval = setInterval(() => {
+        if (connectionId) {
+          clearInterval(interval);
+          const wsURL = `wss://coyote-ws-server.onrender.com/${connectionId}`;
+          const qrData = prefix + wsURL;
 
-      QRCode.toCanvas(
-        document.getElementById("qrcode"),
-        qrData,
-        function (error) {
-          if (error) console.error(error);
-          else console.log("✅ QR-Code generiert");
+          console.log("🔢 Generierte QR-Daten:", qrData);
+
+          QRCode.toCanvas(
+            document.getElementById("qrcode"),
+            qrData,
+            function (error) {
+              if (error) console.error(error);
+              else console.log("✅ QR-Code erfolgreich generiert");
+            }
+          );
         }
-      );
+      }, 200);
     </script>
   </body>
 </html>
