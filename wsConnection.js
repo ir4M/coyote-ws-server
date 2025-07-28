@@ -36,3 +36,5 @@ ws.onerror = (error) => {
 ws.onclose = () => {
   console.warn("🔌 WebSocket-Verbindung geschlossen");
 };
+
+export { ws }; // Damit `qr-controller.html` auf die Verbindung zugreifen kann
