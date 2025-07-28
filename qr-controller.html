@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Controller QR-Code</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        text-align: center;
+        padding: 2rem;
+      }
+      canvas {
+        margin-top: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>📲 Bitte diesen QR-Code mit der App scannen</h1>
+    <p>Der Controller wird dann automatisch geöffnet.</p>
+    <canvas id="qrcode"></canvas>
+
+    <script>
+      const controllerURL = "https://ir4M.github.io/controller.html";
+      // Wenn du es woanders hostest, ersetze die URL oben
+      const fullQR =
+        "https://www.dungeon-lab.com/app-download.php#DGLAB-SOCKET#" +
+        controllerURL;
+
+      QRCode.toCanvas(
+        document.getElementById("qrcode"),
+        fullQR,
+        function (error) {
+          if (error) console.error(error);
+          else console.log("✅ QR-Code generiert:", fullQR);
+        }
+      );
+    </script>
+  </body>
+</html>
