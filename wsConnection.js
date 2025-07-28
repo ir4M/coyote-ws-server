@@ -1,40 +1,37 @@
-// wsConnection.js
+import { v4 as uuidv4 } from "https://cdn.skypack.dev/uuid";
 
-export let connectionId = null;
+export let connectionId = uuidv4();
+export let ws = null;
 
-const socketURL = "wss://coyote-ws-server.onrender.com";
-const ws = new WebSocket(socketURL);
+export function initWebSocket(onBind) {
+  ws = new WebSocket("wss://coyote-ws-server.onrender.com");
 
-ws.onopen = () => {
-  console.log("✅ WebSocket-Verbindung erfolgreich");
-};
+  ws.addEventListener("open", () => {
+    console.log("✅ WebSocket geöffnet:", connectionId);
+    ws.send(
+      JSON.stringify({
+        type: "bind",
+        clientId: connectionId,
+        targetId: "",
+        message: "DGLAB",
+      })
+    );
+  });
 
-ws.onmessage = (event) => {
-  try {
+  ws.addEventListener("message", (event) => {
     const msg = JSON.parse(event.data);
-    console.log("📩 Nachricht vom Server:", msg);
+    console.log("📩 Nachricht erhalten:", msg);
 
-    // Reaktion auf bind-Nachricht vom Server (Handshake)
-    if (msg.type === "bind" && msg.clientId && msg.message === "targetId") {
-      connectionId = msg.clientId;
-      console.log("🔗 clientId erhalten:", connectionId);
+    if (msg.type === "bind" && msg.message === "200") {
+      onBind?.(msg);
     }
+  });
 
-    // Optional: weitere Nachrichtentypen behandeln
-    if (msg.type === "heartbeat") {
-      console.log("❤️ Herzschlag empfangen:", msg.message);
-    }
-  } catch (e) {
-    console.error("❌ Fehler beim Verarbeiten der Nachricht:", e);
-  }
-};
+  ws.addEventListener("close", () => {
+    console.log("🔌 Verbindung geschlossen");
+  });
 
-ws.onerror = (error) => {
-  console.error("❗ WebSocket-Fehler:", error);
-};
-
-ws.onclose = () => {
-  console.warn("🔌 WebSocket-Verbindung geschlossen");
-};
-
-export { ws }; // Damit `qr-controller.html` auf die Verbindung zugreifen kann
+  ws.addEventListener("error", (err) => {
+    console.error("❌ Fehler:", err);
+  });
+}

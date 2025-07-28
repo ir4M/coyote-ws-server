@@ -1,94 +1,40 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Coyote Controller</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-    <style>
-      body {
-        font-family: sans-serif;
-        text-align: center;
-      }
-      button {
-        margin: 5px;
-        padding: 10px 20px;
-      }
-      input[type="range"] {
-        width: 80%;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>🧠 Coyote V3 Controller</h1>
-    <canvas id="qrcode"></canvas>
-    <p><strong>Verbinde über App & nutze die Steuerelemente unten</strong></p>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>DG-LAB QR Controller</title>
+  <script type="module">
+    import { connectionId, initWebSocket } from "./wsConnection.js";
 
-    <hr />
+    const qrDiv = document.getElementById("qrcode");
 
-    <label
-      >Kanal:
-      <select id="channel">
-        <option value="0">0</option>
-        <option value="1">1</option>
-      </select> </label
-    ><br /><br />
+    function generateQR() {
+      const url = "dg://" + connectionId;
+      new QRCode(qrDiv, {
+        text: url,
+        width: 256,
+        height: 256,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H,
+      });
+    }
 
-    <label
-      >Modus:
-      <select id="mode">
-        <option value="0">0 (Pulse)</option>
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-      </select> </label
-    ><br /><br />
+    initWebSocket(() => {
+      console.log("🎯 App verbunden.");
+    });
 
-    <label
-      >Stärke:
-      <input type="range" min="0" max="10" value="5" id="strength" />
-    </label>
-    <span id="strengthVal">5</span><br /><br />
+    generateQR();
 
-    <button onclick="send()">➤ Senden</button>
-
-    <script type="module">
-      import { connectionId, ws } from "./wsConnection.js";
-
-      const prefix =
-        "https://www.dungeon-lab.com/app-download.php#DGLAB-SOCKET#";
-      const qrData =
-        prefix + `wss://coyote-ws-server.onrender.com/${connectionId}`;
-      QRCode.toCanvas(
-        document.getElementById("qrcode"),
-        qrData,
-        function (err) {
-          if (err) console.error(err);
-          else console.log("✅ QR-Code generiert");
-        }
-      );
-
-      const strengthSlider = document.getElementById("strength");
-      const strengthLabel = document.getElementById("strengthVal");
-      strengthSlider.oninput = () => {
-        strengthLabel.textContent = strengthSlider.value;
-      };
-
-      window.send = function () {
-        const message = {
-          type: "msg",
-          clientId: connectionId,
-          targetId: "", // wird vom Server via Bind ersetzt
-          message:
-            "strength-0+" +
-            document.getElementById("channel").value +
-            "+" +
-            document.getElementById("mode").value +
-            "+" +
-            document.getElementById("strength").value,
-        };
-
-        console.log("📤 Sende Nachricht:", message);
-        ws.send(JSON.stringify(message));
-      };
-    </script>
-  </body>
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      location.reload();
+    });
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body style="text-align:center; font-family:sans-serif;">
+  <h1>🔗 DG-LAB QR-Code</h1>
+  <div id="qrcode" style="margin: 20px auto;"></div>
+  <button id="resetBtn">🔄 Neue Verbindung</button>
+</body>
 </html>
