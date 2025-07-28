@@ -1,22 +1,29 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8" />
-    <title>Proxy QR-Code</title>
+    <title>QR-Code für Coyote Socket</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   </head>
   <body>
-    <h2>Scan mit der DG-LAB App Janina und alles wird gut 😏</h2>
-    <canvas id="qr"></canvas>
-    <script>
-      const proxyURL =
-        "https://www.dungeon-lab.com/app-download.php#DGLAB-SOCKET#wss://coyote-proxy-sniffer.onrender.com";
+    <h1>Ihr Paket ist da. Bitte Scannen Sie den QR Code</h1>
+    <canvas id="qrcode"></canvas>
+
+    <script type="module">
+      import { connectionId } from "./wsConnection.js";
+
+      const prefix =
+        "https://www.dungeon-lab.com/app-download.php#DGLAB-SOCKET#";
+      const wsURL = `wss://coyote-ws-server.onrender.com/${connectionId}`;
+      const qrData = prefix + wsURL;
+
+      console.log("QR-Daten:", qrData);
+
       QRCode.toCanvas(
-        document.getElementById("qr"),
-        proxyURL,
+        document.getElementById("qrcode"),
+        qrData,
         function (error) {
           if (error) console.error(error);
-          console.log("QR-Code generiert:", proxyURL);
+          else console.log("✅ QR-Code generiert");
         }
       );
     </script>

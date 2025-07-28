@@ -1,18 +1,12 @@
 const WebSocket = require("ws");
 const { v4: uuidv4 } = require("uuid");
-const http = require("http");
 
 const PORT = process.env.PORT || 10000;
-
-// HTTP-Server für Render.com (damit Port-Scan klappt)
-const server = http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end("🧩 WebSocket-Server läuft.");
-});
-
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ port: PORT });
 
 const sessions = new Map(); // connectionId → { web, app }
+
+console.log(`🚀 DG-LAB-kompatibler WebSocket-Server läuft auf Port ${PORT}`);
 
 wss.on("connection", (ws, req) => {
   console.log("🌐 Neue Verbindung hergestellt");
@@ -21,22 +15,26 @@ wss.on("connection", (ws, req) => {
   let role = null;
   let connectionId = null;
 
-  // UUID generieren und direkt an Webclient senden
-  const tempId = uuidv4();
-  ws.send(JSON.stringify({ connectionId: tempId }));
+  // Erzeuge eine UUID und sende sie dem Webclient
+  const id = uuidv4();
+  ws.send(JSON.stringify({ connectionId: id }));
 
-  ws.on("message", (msg) => {
-    console.log("📩 Rohdaten empfangen:", msg);
+  ws.on("message", (data) => {
+    let raw = data;
 
     try {
-      const jsonStr = msg.toString();
-      console.log("📩 Nachricht als String:", jsonStr);
+      if (Buffer.isBuffer(data)) {
+        console.log("📩 Rohdaten empfangen:", data);
+        raw = data.toString("utf8");
+      }
 
-      const data = JSON.parse(jsonStr);
+      console.log("📩 Nachricht als String:", raw);
+      const msg = JSON.parse(raw);
 
-      if (data.connectionId && data.role) {
-        role = data.role.trim();
-        connectionId = data.connectionId.trim();
+      // Identifikation: role & connectionId
+      if (msg.role && msg.connectionId) {
+        role = msg.role;
+        connectionId = msg.connectionId.trim();
 
         console.log(`🔗 Rolle empfangen: ${role}, ID: ${connectionId}`);
 
@@ -47,43 +45,48 @@ wss.on("connection", (ws, req) => {
         const session = sessions.get(connectionId);
         session[role] = ws;
 
-        if (role === "app") {
-          const handshake = {
-            type: "bind",
-            clientId: connectionId,
-            message: "targetId",
-            targetId: "",
-          };
-          ws.send(JSON.stringify(handshake));
-          console.log("🤝 Handshake an App gesendet:", handshake);
-        }
-
+        // Wenn beide Seiten verbunden sind → Bindung senden
         if (session.web && session.app) {
           console.log(`🎉 Session vollständig: ${connectionId}`);
+
+          // Sende "bind"-Nachricht an App
+          session.app.send(
+            JSON.stringify({
+              type: "bind",
+              clientId: connectionId,
+              message: "targetId",
+              targetId: connectionId, // App erwartet offenbar clientId == targetId
+            })
+          );
         }
 
         return;
       }
 
-      // Nachricht weiterleiten
+      // Weiterleitung von Nachrichten
       if (connectionId && role) {
         const session = sessions.get(connectionId);
+        if (!session) return;
+
         const target = role === "web" ? session.app : session.web;
 
         if (target && target.readyState === WebSocket.OPEN) {
-          target.send(jsonStr);
+          target.send(raw);
+        } else {
+          console.warn("⚠️ Ziel-Client nicht verbunden");
         }
       }
-    } catch (e) {
-      console.error("❌ Fehler beim Parsen der Nachricht:", e.message);
-      console.error("🧾 Ursprüngliche Nachricht:", msg.toString());
+    } catch (err) {
+      console.warn("❌ Fehler beim Verarbeiten der Nachricht:", err);
     }
   });
 
   ws.on("close", () => {
-    console.log("🔌 Verbindung geschlossen (noch ohne Identifikation)");
+    if (!connectionId || !role) {
+      console.log("🔌 Verbindung geschlossen (noch ohne Identifikation)");
+      return;
+    }
 
-    if (!connectionId || !role) return;
     const session = sessions.get(connectionId);
     if (!session) return;
 
@@ -95,8 +98,4 @@ wss.on("connection", (ws, req) => {
       console.log(`🗑️ Session gelöscht: ${connectionId}`);
     }
   });
-});
-
-server.listen(PORT, () => {
-  console.log(`🚀 Server läuft auf Port ${PORT}`);
 });

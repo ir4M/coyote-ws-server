@@ -1,44 +1,34 @@
-const wsServerUrl = "wss://coyote-ws-server.onrender.com";
-let connectionId = "";
+// wsConnection.js
 
-// WebSocket-Verbindung aufbauen
-const ws = new WebSocket(wsServerUrl);
+export let connectionId = null;
 
-const qrcodeImg = new QRCode(document.getElementById("qrcode"), {
-  width: 128,
-  height: 128,
-});
+const socketURL = "wss://coyote-ws-server.onrender.com";
+const ws = new WebSocket(socketURL);
 
 ws.onopen = () => {
-  console.log("✅ Verbindung aufgebaut");
+  console.log("✅ WebSocket-Verbindung erfolgreich");
 };
 
 ws.onmessage = (event) => {
-  console.log("📩 Nachricht:", event.data);
-
   try {
-    const data = JSON.parse(event.data);
-    if (data.connectionId) {
-      connectionId = data.connectionId;
+    const msg = JSON.parse(event.data);
+    console.log("📩 Nachricht vom Server:", msg);
 
-      // Verbindung dem Server melden
-      ws.send(JSON.stringify({ role: "web", connectionId }));
-
-      // QR-Code erzeugen
-      updateQRCode();
+    if (msg.connectionId) {
+      connectionId = msg.connectionId;
+      console.log("🔗 connectionId erhalten:", connectionId);
     }
+
+    // Weitere Nachrichtenbehandlung (z. B. heartbeats) kannst du hier ergänzen
   } catch (e) {
-    console.warn("Fehlerhafte Nachricht ignoriert.");
+    console.error("❌ Fehler beim Verarbeiten der Nachricht:", e);
   }
 };
 
-function updateQRCode() {
-  const qrData =
-    "https://www.dungeon-lab.com/app-download.php#DGLAB-SOCKET#" +
-    wsServerUrl +
-    "/" +
-    connectionId;
+ws.onerror = (error) => {
+  console.error("❗ WebSocket-Fehler:", error);
+};
 
-  console.log("🔳 QR-Daten:", qrData);
-  qrcodeImg.makeCode(qrData);
-}
+ws.onclose = () => {
+  console.warn("🔌 WebSocket-Verbindung geschlossen");
+};
